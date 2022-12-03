@@ -1,0 +1,9 @@
+{
+    "username":       "",
+    "password":       "",
+    "security_token": "",
+    "client_id":      "",
+    "client_secret":  "",
+    "api_version":    "55.0",
+    "host":           "test.salesforce.com"
+}

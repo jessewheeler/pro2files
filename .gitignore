@@ -1,0 +1,3 @@
+# Environment Variable Scripts
+environments/*
+!environments/template.json
