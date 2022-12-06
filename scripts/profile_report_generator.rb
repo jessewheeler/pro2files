@@ -17,6 +17,8 @@ object_permissions_report_output = "./output/object_permissions.csv"
 credentials_file = File.read(credentials_path)
 credentials = JSON.parse(credentials_file)
 
+puts "Building Profile and SObject permission reports for " << credentials["username"] << "..."
+
 client = Restforce.new(
     username:       credentials["username"],
     password:       credentials["password"],
@@ -48,24 +50,29 @@ CSV.open(profile_report_output, "wb") do |writer|
     end
 end
 
+# Run SObject permission query
+fields = { "Parent.Profile.Name" => "Profile Name"}
+description = client.describe('ObjectPermissions')
+description.fields.each do |field|
+    fields[field.name] = field.label
+end
 
-fields = ["Id", "Parent.Profile.Name", "SobjectType", "PermissionsCreate", "PermissionsDelete", "PermissionsEdit", "PermissionsModifyAllRecords", "PermissionsRead", "PermissionsViewAllRecords"]
-query  = 'SELECT ' + fields.join(', ') + ' FROM ObjectPermissions'
-sObject_permissions = client.query(query);
+query  = 'SELECT ' + fields.keys.join(', ') + ' FROM ObjectPermissions WHERE Parent.Profile.Name != NULL'
+sObject_permissions = client.query(query).sort_by{ |permission| permission.Parent.Profile[:Name] }
 
 CSV.open(object_permissions_report_output, "wb") do |writer|
-    writer << fields
+    writer << fields.values
     sObject_permissions.each do |permission|
-        if permission.Parent.Profile != nil
-            values = [];
-            fields.each do |field|
-                if field == "Parent.Profile.Name"
-                    values.push(permission.Parent.Profile["Name"])
-                else
-                    values.push(permission[field])
-                end
+        values = [];
+        fields.keys.each do |field|
+            if field == "Parent.Profile.Name"
+                values.push(permission.Parent.Profile[:Name])
+            else
+                values.push(permission[field])
             end
-            writer << values
         end
+        writer << values
     end
 end
+
+puts "Done!"
